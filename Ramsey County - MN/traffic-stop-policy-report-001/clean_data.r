@@ -19,9 +19,9 @@
 # text comments for demographic information and merge information
 # regarding police departments.
 
-library("tidyverse") # All the good stuff
-library("magrittr") # Pipes on pipes on pipes
-library("arrow") # For dealing with parquet files
+library("tidyverse") 
+library("magrittr") 
+library("arrow") 
 
 ###########################################################################
 # This section of code deals with the all calls data. It limits the data to
@@ -124,14 +124,13 @@ df_final_traffic_stops <- read_parquet('path_to_data.parquet')
 # Notes on parsing person information in comments from data provider:
 # 1. The Comment contains the Race, Gender, Vehicle Searched, and Person Searched,
 # plus the Reason for the stop.
-# 2. Race is the first digit of the Code, indicating Race. See the screenshot
-# of the mobile CAD clearing screen, which corresponds the race to the number.
+# 2. Race is the first digit of the Code, indicating Race. 
 # White is 1, Black is 2, Hispanic is 3, Asian is 4, Native American is 5, and
 # Other is 6. 6 was not always an option, but was added after 2016.
 # 3. Gender is second. M for Male, F for Female or X for Non-binary. X was not
 # always an option, but was added after 2019.
-# 4. PerSearched appears to be third – Y or N whether the Person was searched.
-# 5. VehSearched appears to be fourth – Y or N whether the Vehicle was searched.
+# 4. PerSearched is third – Y or N whether the Person was searched.
+# 5. VehSearched is fourth – Y or N whether the Vehicle was searched.
 # 6. Reason is last – The reason given by the officer for the stop. 1 for Moving
 # Violation, 2 for Vehicle Violation, 3 for Investigative, and 4 for 9-1-1/Citizen
 # Report. The Reason Code was not always an option, but was added in 2017.
@@ -158,7 +157,6 @@ df_final_traffic_stops %>% count(delimiter_dup, delimiter_alt) %>% arrange(desc(
 # Approach 1: Using colon delimiters
 # Splitting comment text using delimiters (after cleaning) (Note: the regex was developed by Felix Owusu)
 df_final_traffic_stops %<>%
-    #select(id, master_incident_number, casenumber, problem, comment, comment_clean, vehicle_jurisdiction) %>%
     mutate(comment_split = str_split_fixed(comment_clean, "[;:]{2}", n = 3)) %>%
     mutate(comment_split_1 = comment_split[,1],
            comment_split_2 = comment_split[,2],
