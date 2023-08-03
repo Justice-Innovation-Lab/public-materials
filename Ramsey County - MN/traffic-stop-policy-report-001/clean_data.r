@@ -7,28 +7,26 @@
 # gender of the individual stopped, and the whether the car and person
 # were searched.
 
-# The code below details the cleaning and manipulation of both datasets.
-# The cleaning and manipulation of the datasets was done in both python
-# and R for various steps. This is because our analysis team consisted
-# of people more familiar with each respective language and that were
-# responsible for different sections of the cleaning and manipulation.
-# The cleaning and manipulation was originally done in coding notebooks
-# that also contain many smaller, investigative steps. The code presented
-# here is a streamlined version of the code to highlight the necessary
-# manipulation steps.
+# The code below details the cleaning and manipulation of these datasets,
+# which was done in both python and R for various steps. This is because 
+# individual members of our analysis team are more familiar with either 
+# python or R and were responsible for different sections of the code. 
+# The cleaning and manipulation was originally done in coding notebooks 
+# that also contain many smaller, investigative steps. The code presented 
+# here is a streamlined version to highlight the necessary manipulation steps.
 
 # This script picks up from the earlier python code in order to parse
 # text comments for demographic information and merge information
 # regarding police departments.
 
-library("tidyverse") # all the good stuff
+library("tidyverse") # All the good stuff
 library("magrittr") # Pipes on pipes on pipes
 library("arrow") # For dealing with parquet files
 
 ###########################################################################
-# this section of code deals with the all calls data. It limits the data to
+# This section of code deals with the all calls data. It limits the data to
 # 911 calls for the crime analysis done later and assigns departments based
-# on alignment to the policy
+# on alignment to the policy.
 ###########################################################################
 df_all_calls <- arrow::read_parquet("path_to_data.parquet")
 
@@ -42,8 +40,8 @@ calls_911 <- calls_911 %>%
     mutate(across(all_of(cols), as.character)) %>%
     replace(.=="None" | .=="nan", NA_character_)
 
-# there are many rows that are missing the jurisdiction. For these, we can
-# assign the jurisdiction that is most common to the city. we will also use
+# There are many rows that are missing the jurisdiction. For these, we can
+# assign the jurisdiction that is most common to the city. We will also use
 # this method to replace where ECC is listed as the jurisdiction.
 missing_jx <- calls_911 %>%
     group_by(city, jurisdiction) %>%
@@ -93,7 +91,7 @@ calls_911 %<>%
                             TRUE ~ "Unknown"))
 
 # In the table below, you can compare the jurisdiction and incident_jurisdiction
-# rows and where jurisdiction is NA and incident_jurisdiction is not NA you
+# rows. Where jurisdiction is NA and incident_jurisdiction is not NA, you
 # can see how many rows were reassigned to that jurisdiction.
 calls_911 %>%
     group_by(policy, incident_jurisdiction, jurisdiction) %>%
@@ -116,7 +114,7 @@ calls_911 %<>%
 write_parquet(calls_911, "path_to_file.parquet")
 
 ###########################################################################
-# this section of code deals with the traffic stops data.
+# This section of code deals with the traffic stops data.
 ###########################################################################
 df_final_traffic_stops <- read_parquet('path_to_data.parquet')
 
@@ -138,7 +136,6 @@ df_final_traffic_stops <- read_parquet('path_to_data.parquet')
 # Violation, 2 for Vehicle Violation, 3 for Investigative, and 4 for 9-1-1/Citizen
 # Report. The Reason Code was not always an option, but was added in 2017.
 # Example: 1MNY3
-
 # 7. The text is preceded by two colons to make them easier to spot.
 # 8. The bracketed number indicated the comment number within the incident.
 ###########################################################################
@@ -155,11 +152,11 @@ df_final_traffic_stops %<>%
 df_final_traffic_stops %>% count(delimiter_dup, delimiter_alt) %>% arrange(desc(n))
 
 # There were multiple methods possible for parsing this information from the text.
-# Two approaches are provided below that were measured against one another
+# Two approaches are provided below that were measured against one another.
 
 #############################
-# Approach 1: using colon delimiters
-# Splitting comment text using delimiters (after cleaning) (note: the regex was developed by Felix Owusu)
+# Approach 1: Using colon delimiters
+# Splitting comment text using delimiters (after cleaning) (Note: the regex was developed by Felix Owusu)
 df_final_traffic_stops %<>%
     #select(id, master_incident_number, casenumber, problem, comment, comment_clean, vehicle_jurisdiction) %>%
     mutate(comment_split = str_split_fixed(comment_clean, "[;:]{2}", n = 3)) %>%
@@ -172,10 +169,10 @@ df_final_traffic_stops %<>%
 
 # Isolating person/search information in text after delimiter
 df_final_traffic_stops %<>%
-    mutate(split_2_d1_length = str_locate(comment_split_2, " ")[,1]) %>% # splitting on white space, to keep just the first thing after the delimiter
-    mutate(split_2_d1 = if_else(is.na(split_2_d1_length) | split_2_d1_length <= 3, # if there's no space at all in the split or it appears too early to follow demo/search info
+    mutate(split_2_d1_length = str_locate(comment_split_2, " ")[,1]) %>% # Splitting on white space, to keep just the first thing after the delimiter
+    mutate(split_2_d1 = if_else(is.na(split_2_d1_length) | split_2_d1_length <= 3, # If there's no space at all in the split or it appears too early to follow demo/search info
                                 str_trim(comment_split_2, side = "both"), # Then just reproduce the whole text segment (trimming white space)
-                                str_sub(comment_split_2, 1, split_2_d1_length -1))) %>% # otherwise, pull text before space
+                                str_sub(comment_split_2, 1, split_2_d1_length -1))) %>% # Otherwise, pull text before space
     mutate(split_2_d1 = str_replace_all(split_2_d1, "[\\].\\',/\\\\]", "")) %>% # Removing extra characters (common typo)
     mutate(delimit_match = split_2_d1 != "") # Marking stops that have demo/search info identified using delimiter parsing method
 
@@ -190,22 +187,22 @@ df_final_traffic_stops %<>%
 
 #############################
 # Approach 2: Using regex
-# Regex for matching (note: the regex was developed by Rory Pulvino)
+# Regex for matching (Note: the regex was developed by Rory Pulvino)
 regex_full <- "[\\s:;]\\w{1,2}[yYnN]{2}\\d{0,1}" # With delimiters
 regex_parsed <- "\\w{1,2}[yYnN]{2}\\d{0,1}" # Without delimiters
 
 # Identifying matching text in the cleaned comment field
 df_final_traffic_stops %<>%
-    mutate(demographic_text_regex = str_extract_all(comment_clean, regex_full, simplify = TRUE), # extract all text that matches the data pattern
+    mutate(demographic_text_regex = str_extract_all(comment_clean, regex_full, simplify = TRUE), # Extract all text that matches the data pattern
            regex_match = str_detect(comment_clean, regex_full)) %>% # Marking stops that have demo/search info identified using the regex method
     mutate(regex_d1 = demographic_text_regex[,1],
-           regex_d2 = demographic_text_regex[,2]) %>% # saving data separately for instances with multiple persons
-    mutate(regex_d1 = str_replace_all(regex_d1, "[:;,]", ""), # removing delimiters
-           regex_d2 = str_replace_all(regex_d2, "[:;,]", "")) %>% # removing delimiters
-    mutate(regex_d1 = str_trim(regex_d1, side = "both"), # trimming white space
+           regex_d2 = demographic_text_regex[,2]) %>% # Saving data separately for instances with multiple persons
+    mutate(regex_d1 = str_replace_all(regex_d1, "[:;,]", ""), # Removing delimiters
+           regex_d2 = str_replace_all(regex_d2, "[:;,]", "")) %>% # Removing delimiters
+    mutate(regex_d1 = str_trim(regex_d1, side = "both"), # Trimming white space
            regex_d2 = str_trim(regex_d2, side = "both"))
 
-# Quickly reviewing results
+# Reviewing results
 df_final_traffic_stops %>% count(regex_match)
 df_final_traffic_stops %>% count(demographic_text_regex, regex_d1, regex_d2) %>%
 arrange(desc(n)) %>%
@@ -213,48 +210,48 @@ head(7)
 df_final_traffic_stops %>% count(regex_d2) %>% arrange(desc(n)) %>% head(7)
 
 #############################
-# comparing coverage of both methods
+# Comparing coverage of both methods
 # Checking coverage by method -- Do the methods identify info in the same stops?
 df_final_traffic_stops %>%
     count(delimit_match, regex_match) %>%
     arrange(desc(n))
-# Yes, mostly.
+# Yes, mostly
 
 # Save length of parsed text from each method for future comparison
 df_final_traffic_stops %<>%
     mutate(split_2_d1_length = str_length(split_2_d1),
            regex_d1_length = str_length(regex_d1))
 
-# Reviewing most common codes
+# Review most common codes
 df_final_traffic_stops %>%
     count(split_2_d1, regex_d1) %>%
     arrange(desc(n)) %>%
     head(10)
 
-# review sample of extra regex matches
+# Review sample of extra regex matches
 df_final_traffic_stops %>%
     filter(regex_match == TRUE & delimit_match == FALSE) %>%
     select(comment, comment_clean, split_2_d1, demographic_text_regex) %>%
     slice_sample(n = 10)
 
-# review sample of extra delimiter matches
+# Review sample of extra delimiter matches
 df_final_traffic_stops %>%
     filter(regex_match == FALSE & delimit_match == TRUE) %>%
     select(comment, comment_clean, split_2_d1, demographic_text_regex) %>%
     slice_sample(n = 10)
 
-# reviewing sample of stops with no person information under either method
+# Review sample of stops with no person information under either method
 df_final_traffic_stops %>%
     filter(regex_match == FALSE & delimit_match == FALSE) %>%
     select(comment, comment_clean, split_2_d1, demographic_text_regex) %>% slice_sample(n = 10)
 
 ###########################################################################
-# Notes regarding findings from different approaches to parsing
+# Notes regarding findings from different approaches to parsing:
 # Most stops have info picked up by both methods.
 # 1. Regex method picks up info in ~1400 stops where the delimiter method
-# does not. Mostly those with no or particularly wonky delimiters
+# does not. Mostly those with no or particularly wonky delimiters.
 # 2. Delimiter method picks up info in 83 stops where the regex method does
-# not. Mostly those with unanticipated typos
+# not. Mostly those with unanticipated typos.
 # 3. 75 stops have no identifiable person/search information. These appear
 # to be the result of typos that alter the field's length/pattern substantially.
 # 4. Will need to do some manual cleaning to include these, particularly
@@ -262,7 +259,7 @@ df_final_traffic_stops %>%
 # up approximate matches. This increases the risk of miscoding, however.
 ###########################################################################
 
-# additional checks
+# Additional checks
 # Checking text identification by method -- when both methods identify information, does it match?
 
 # Do the parsed values match across methods?
@@ -270,7 +267,7 @@ df_final_traffic_stops %<>%
     mutate(method_mismatch_d1 = split_2_d1 != regex_d1 & split_2_d1 != "" & regex_d1 != "")
 
 df_final_traffic_stops %>% count(method_mismatch_d1)
-# Almost always match.
+# Almost always match
 
 # Reviewing mismatches
 df_final_traffic_stops %>%
@@ -284,7 +281,7 @@ df_final_traffic_stops %>%
     filter(method_mismatch_d1 == TRUE) %>%
     count(split_2_d1_length, regex_d1_length) %>%
     arrange(desc(n))
-# When the methods disagree, its about length. All mismatches have different lengths involved
+# When the methods disagree, it's about length. All mismatches have different lengths involved.
 
 # When are regex matches longer?
 df_final_traffic_stops %>%
@@ -301,10 +298,10 @@ df_final_traffic_stops %>%
     select(comment, comment_clean, split_2_d1, regex_d1, method_mismatch_d1,
     split_2_d1_length, regex_d1_length) %>%
     slice_sample(n = 20)
-# if there's a length mismatch, it's likely in this direction. regex truncates
+# If there's a length mismatch, it's likely in this direction. Regex truncates.
 
 ###########################################################################
-# This section reviews the quality of the parsed text based on expected codes
+# This section reviews the quality of the parsed text based on expected codes.
 ###########################################################################
 # Enumerating expected demo/search info values
 
@@ -315,7 +312,7 @@ df_final_traffic_stops %>%
 # Reason: 1:4 (sometimes missing in earlier data)
 
 race_cat <- c(1:6)
-race_typo <- c("b", "w", "a", "h", "l", "n") # likely typos from people who forget numbers
+race_typo <- c("b", "w", "a", "h", "l", "n") # Likely typos from people who forget numbers
 gender_cat <- c("m", "f", "x")
 search_cat <- c("y", "n")
 reason_cat <- c("",1:4)
@@ -356,11 +353,11 @@ df_final_traffic_stops %<>%
 df_final_traffic_stops %>%
     count(split_2_d1_match_list, regex_d1_match_list) %>% arrange(desc(n))
 
-# Vast majority of the demographic information identified via both methods match expectations
-# regex method produces text that matches expectations slightly more often -- manual review
+# The vast majority of the demographic information identified via both methods match expectations.
+# The regex method produces text that matches expectations slightly more often -- manual review
 # indicates that this is because it will truncate entries where they are expected to end,
 # whereas the delimiter method pulls the full word after the delimiter even if only the first
-# portion of the string matches (e.g. the demo info includes trailing extra characters)
+# portion of the string matches (e.g. the demo info includes trailing extra characters).
 
 # Reviewing mismatches for person 1
 split_2_d1_mismatch_df <- df_final_traffic_stops %>%
@@ -427,18 +424,18 @@ df_final_traffic_stops %>%
 df_final_traffic_stops %<>%
     mutate(
         d1_demo_string = case_when(
-            match_clean_d1 == TRUE ~ split_2_d1, # when everything's good, pull from whichever
-            match_typo_d1 == TRUE ~ split_2_d1, # when methods match and include anticipated typos, pull from whichever
-            match_unexpected_d1 == TRUE ~ split_2_d1, # when methods match but we don't meet expectations, pull from whichever but review
-            mismatch_delimit_only_d1 == TRUE ~ split_2_d1, # when only delimit method is populated, pull that
-            mismatch_regex_only_d1 == TRUE ~ regex_d1, # when only regex method is populated, pull that
-            mismatch_delimit_d1 == TRUE ~ split_2_d1, # when there is a mismatch and delimit produces longer string, pull that
-            mismatch_regex_d1 == TRUE ~ regex_d1, # when there is a mismatch and regex produces longer string, pull that
-            match_no_data_d1 == TRUE ~ comment_clean, # when neither match at all, pull the full comment
+            match_clean_d1 == TRUE ~ split_2_d1, # When everything's good, pull from whichever
+            match_typo_d1 == TRUE ~ split_2_d1, # When methods match and include anticipated typos, pull from whichever
+            match_unexpected_d1 == TRUE ~ split_2_d1, # When methods match but we don't meet expectations, pull from whichever but review
+            mismatch_delimit_only_d1 == TRUE ~ split_2_d1, # When only delimit method is populated, pull that
+            mismatch_regex_only_d1 == TRUE ~ regex_d1, # When only regex method is populated, pull that
+            mismatch_delimit_d1 == TRUE ~ split_2_d1, # When there is a mismatch and delimit produces longer string, pull that
+            mismatch_regex_d1 == TRUE ~ regex_d1, # When there is a mismatch and regex produces longer string, pull that
+            match_no_data_d1 == TRUE ~ comment_clean, # When neither match at all, pull the full comment
             TRUE ~ "UNACCOUNTED" # There shouldn't be anything left after this, but here just in case
     ))
 
-# Reviewing those that don't match any method -- in need of manual intervention.
+# Reviewing those that don't match any method -- in need of manual intervention
 df_final_traffic_stops %>%
     filter(match_no_data_d1 == TRUE) %>%
     select(comment, comment_clean, split_2_d1, regex_d1, method_mismatch_d1, split_2_d1_length,
@@ -451,7 +448,6 @@ df_final_traffic_stops %>%
 df_final_traffic_stops %>%
     filter(split_3_d1 != "" | regex_d2 != "") %>%
     select(comment, split_2_d1, regex_d1, split_3_d1, regex_d2)
-
 
 df_final_traffic_stops %>%
     #filter(split_3_d1 != "") %>%
@@ -491,7 +487,7 @@ df_final_traffic_stops %>% count(match_clean_d2, match_typo_d2)
 ###########################################################################
 # Coding the variables based on the text string
 ###########################################################################
-# Coding up demographic and search variables from the strings
+# Coding demographic and search variables from the strings
 df_final_traffic_stops %<>%
     mutate(
         reason_for_stop_1 = case_when(
@@ -585,8 +581,8 @@ df_final_traffic_stops %>%
     arrange(desc(n))
 
 # Note: Felix checked these numbers against Rory Pulvino's initial approach -- overall numbers look
-# quite similar, with some differences across a few hundred observations due to addl. data cleaning
-# and slightly more restrictive regex in current approach.
+# quite similar, with some differences across a few hundred observations due to additional data 
+# cleaning and slightly more restrictive regex in current approach.
 
 ###########################################################################
 # Assigning missing police departments and police department alignment
@@ -594,7 +590,7 @@ df_final_traffic_stops %>%
 # Where the incident_jurisdiction is listed as ECC, this is early data entry error.
 # ECC should be replaced with the agency assigned for that city.
 
-# determine what the most common agency is per city listed as ECC
+# Determine what the most common agency is per city listed as ECC
 ECC_cities <- df_final_traffic_stops$city[df_final_traffic_stops$vehicle_jurisdiction=='ECC']
 df_final_traffic_stops %>%
     filter(city %in% ECC_cities) %>%
