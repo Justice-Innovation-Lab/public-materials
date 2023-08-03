@@ -5,18 +5,16 @@ The other contains all traffic stop calls for service from January 2016
 through September 2022. Though the traffic stop data is a subset of the
 all calls data, it contains an additional text column with the 'comment'
 from the officer that details the reason for the stop, the race and
-gender of the individual stopped, and the whether the car and person
+gender of the individual stopped, and whether the car and person
 were searched.
 
-The code below details the cleaning and manipulation of both datasets.
-The cleaning and manipulation of the datasets was done in both python
-and R for various steps. This is because our analysis team consisted
-of people more familiar with each respective language and that were
-responsible for different sections of the cleaning and manipulation.
-The cleaning and manipulation was originally done in coding notebooks
-that also contain many smaller, investigative steps. The code presented
-here is a streamlined version of the code to highlight the necessary
-manipulation steps.
+The code below details the cleaning and manipulation of these datasets,
+which was done in both python and R for various steps. This is because 
+individual members of our analysis team are more familiar with either 
+python or R and were responsible for different sections of the code. 
+The cleaning and manipulation was originally done in coding notebooks 
+that also contain many smaller, investigative steps. The code presented 
+here is a streamlined version to highlight the necessary manipulation steps.
 """
 
 # Load packages
@@ -27,7 +25,7 @@ import pandas as pd
 # The dataset of all calls for service
 df_all_calls = pd.read_csv("path_to_data.csv")
 
-# This is an additional dataset that was provided that has every 911 call.
+# This is an additional dataset that was provided that has every 911 call
 df_911_calls = pd.read_csv("path_to_data.csv")
 
 df_all_calls["is_911_call"] = False
@@ -44,7 +42,7 @@ def add_census_geoids(df: pd.DataFrame, shapefile_path: str) -> pd.DataFrame:
 
     Parameters:
     - df (DataFrame): DataFrame with latitude and longitude information for each address.
-    Assumes latitude and longitude are stored in a columns named 'Latitude' and 'Longitude'
+    Assumes latitude and longitude are stored in columns named 'Latitude' and 'Longitude'
     - shapefile_path (str): Path to shapefile containing census block information.
 
     Returns:
@@ -66,7 +64,7 @@ def add_census_geoids(df: pd.DataFrame, shapefile_path: str) -> pd.DataFrame:
     gdf = gdf.to_crs(epsg=2811)
     census_blocks = census_blocks.to_crs(epsg=2811)
 
-    # spacial join the POINT values to census_block POLYGON values that the latlon are found within
+    # Spatial join the POINT values to census_block POLYGON values that the latlon are found within
     merged_file = gpd.sjoin(gdf, census_blocks, how="inner", predicate="within")
     merged_df = pd.DataFrame(merged_file)
 
@@ -85,7 +83,7 @@ shapefile_path = "MN_block_2010.shp"
 df_all_calls = add_census_geoids(df_all_calls, shapefile_path)
 
 # Cleaning and manipulation for traffic stop data. This data was originally provided as
-# an excel file with multiple tabs for each year of data
+# an excel file with multiple tabs for each year of data.
 traffic_stop_data = pd.read_excel("path_to_data.xlsx")
 
 df_traffic_stops = pd.DataFrame()
