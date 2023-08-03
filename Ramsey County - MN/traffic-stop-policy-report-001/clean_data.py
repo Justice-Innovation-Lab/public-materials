@@ -114,7 +114,5 @@ df_final_traffic_stops = pd.merge(
     indicator=True,
 )
 
-# @Rory insert write steps here for df_final_traffic_stops and df_all_calls as parquet files
-
 ######################################################################
 # Additional cleaning and manipulation is performed in R at this point.
