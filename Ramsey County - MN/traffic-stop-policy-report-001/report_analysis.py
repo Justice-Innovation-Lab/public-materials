@@ -182,7 +182,6 @@ def monthly_stops_and_searches(df):
 
     return df_returned
 
-
 # Calculate overall search percent
 df_temp = monthly_stops_and_searches(df_)
 TOTAL_STOPS = df_temp.loc[df_temp["type"] == "Stops"]["count"].sum()
@@ -199,18 +198,8 @@ df_temp3 = monthly_stops_and_searches(
 )
 df_temp3["department"] = "Unchanged Policy PDs"
 
-# Add chart annotation variables
+# Combine data for chart creation
 df_chart_stop_search = pd.concat([df_temp1, df_temp2, df_temp3], axis=0)
-df_chart_stop_search["pol_label"] = "Changes\nImplemented"
-df_chart_stop_search["pol_date"] = POLICY_START_DATE
-df_chart_stop_search["covid_label"] = "COVID\nStart"
-df_chart_stop_search["covid_date"] = pd.to_datetime("2020-03-01")
-df_chart_stop_search["floyd_label"] = "G. Floyd\nDeath"
-df_chart_stop_search["floyd_date"] = pd.to_datetime("2020-05-01")
-
-# Create chart color groups
-pol_domain = ["SPPD", "Other Aligned PDs", "Unchanged Policy PDs"]
-pol_range = ["#00708f", "#66bad1", "#ffac57"]
 
 # Calculate percent of stops attributed to SPPD
 df_chart_stop_search.loc[
@@ -245,71 +234,23 @@ df_chart_annual = (
     .reset_index()
 )
 
-# Create color coding variables for bar chart
-conditions_color = [
-    (df_chart_annual["Time Period"].isin(["2019", "2020", "2021"]))
-    & (df_chart_annual["department"] == "SPPD"),
-    (df_chart_annual["Time Period"].isin(["2019", "2020", "2021"]))
-    & (df_chart_annual["department"] == "Other Aligned PDs"),
-    (df_chart_annual["Time Period"].isin(["2019", "2020", "2021"]))
-    & (df_chart_annual["department"] == "Unchanged Policy PDs"),
-    (df_chart_annual["Time Period"].isin(["2022"]))
-    & (df_chart_annual["department"] == "SPPD"),
-    (df_chart_annual["Time Period"].isin(["2022"]))
-    & (df_chart_annual["department"] == "Other Aligned PDs"),
-    (df_chart_annual["Time Period"].isin(["2022"]))
-    & (df_chart_annual["department"] == "Unchanged Policy PDs"),
-]
-
-labels_color = ["#4dafca", "#b3dde8", "#ffcc99", "#00708f", "#66bad1", "#ffac57"]
-
-conditions_color2 = [
-    (df_chart_annual["Time Period"].isin(["2019", "2020", "2021"])),
-    (df_chart_annual["Time Period"].isin(["2022"]))
-    & (df_chart_annual["department"] == "SPPD"),
-    (df_chart_annual["Time Period"].isin(["2022"]))
-    & (df_chart_annual["department"] == "Other Aligned PDs"),
-    (df_chart_annual["Time Period"].isin(["2022"]))
-    & (df_chart_annual["department"] == "Unchanged Policy PDs"),
-]
-
-labels_color2 = ["#cdcfd4", "#00708f", "#66bad1", "#ffac57"]
-
-df_chart_annual["bar_color"] = np.select(conditions_color, labels_color)
-df_chart_annual["bar_color2"] = np.select(conditions_color2, labels_color2)
-
-
-df_chart_annual["text_label"] = " "
-df_chart_annual["text_label"] = np.where(
-    (df_chart_annual["Time Period"] == "2022")
-    & (df_chart_annual["department"] == "SPPD")
-    & (df_chart_annual["type"] == "Stops"),
-    "Year\nAfter\nChange",
-    df_chart_annual["text_label"],
-)
-
-# Calculate percent change from prior year
-df_chart_annual["percent_mean_change"] = (
-    df_chart_annual["mean"] - df_chart_annual["mean"].shift(1)
-) / df_chart_annual["mean"].shift(1)
+# Calculate percent change from prior year  
 df_chart_annual["percent_mean_change"] = np.where(
-    df_chart_annual["Time Period"] == "2019", 0, df_chart_annual["percent_mean_change"]
+    df_chart_annual["Time Period"] == "2019", 
+    0, 
+    (df_chart_annual["mean"] - df_chart_annual["mean"].shift(1)) / df_chart_annual["mean"].shift(1)
 )
 
-df_chart_annual["percent_median_change"] = (
-    df_chart_annual["median"] - df_chart_annual["median"].shift(1)
-) / df_chart_annual["median"].shift(1)
 df_chart_annual["percent_median_change"] = np.where(
     df_chart_annual["Time Period"] == "2019",
     0,
-    df_chart_annual["percent_median_change"],
+    (df_chart_annual["median"] - df_chart_annual["median"].shift(1)) / df_chart_annual["median"].shift(1)
 )
-
-df_chart_annual["percent_total_change"] = (
-    df_chart_annual["total"] - df_chart_annual["total"].shift(1)
-) / df_chart_annual["total"].shift(1)
+ 
 df_chart_annual["percent_total_change"] = np.where(
-    df_chart_annual["Time Period"] == "2019", 0, df_chart_annual["percent_total_change"]
+    df_chart_annual["Time Period"] == "2019", 
+    0, 
+    (df_chart_annual["total"] - df_chart_annual["total"].shift(1)) / df_chart_annual["total"].shift(1)
 )
 
 # Calculate percentage of stops and searches by reason for stop
@@ -325,7 +266,6 @@ def get_percentage_stop_search(df, grouping_col):
     - df_returned (DataFrame): DataFrame aggregated to reflect the monthly number of stops, number of
     searches, and percentage of stops and searches per subgroup specified by the grouping_col.
     """
-    # df_returned = df.drop("search_percent_monthly", axis=1)
     df_returned = df.copy()
     df_returned["total_monthly_Stops"] = df_returned.groupby("date")[
         "monthly_Stops"
@@ -351,7 +291,7 @@ def get_percentage_stop_search(df, grouping_col):
     return df_returned
 
 
-# Create new df for traffIc stop reason
+# Create new df for traffic stop reason
 df_stop_reason = df_.copy()
 
 # Group into 1 year before, 1 year after policy
@@ -399,14 +339,14 @@ df_stop_reason["perc_searches"] = (
     df_stop_reason["reas_tot_searches"].div(df_stop_reason["total_searches"]) * 100
 ).round(1)
 
-# calculate percent change
+# Calculate percent change
 def percent_change(df, column_name, new_column):
     """
     Calculate the percentage change from the previous period.
     Parameters:
-    - df (DataFrame): DataFrame .
+    - df (DataFrame): DataFrame
     - column_name (str): name of the column with the numeric value that should be used to calculate
-    the percent change.
+    the percent change
     - new_column (str): name of the new column to create
 
     Returns:
@@ -423,29 +363,12 @@ def percent_change(df, column_name, new_column):
 
 # Create df for percent change in moving and vehicle equipment violations
 df_moving = df_stop_reason.loc[df_stop_reason["reason"] == "Moving Violation"].copy()
-
 df_moving = percent_change(df_moving, "reas_tot_stops", "percent_change_stops")
-
-df_moving["percent_change_searches"] = (
-    df_moving["reas_tot_searches"] - df_moving["reas_tot_searches"].shift(-1)
-) / df_moving["reas_tot_searches"].shift(-1)
-df_moving["percent_change_searches"] = np.where(
-    df_moving["Time Period"] == "Before", 0, df_moving["percent_change_searches"]
-)
+df_moving = percent_change(df_moving, "reas_tot_searches", "percent_change_searches")
 
 df_vehicle = df_stop_reason.loc[df_stop_reason["reason"] == "Vehicle Violation"].copy()
-df_vehicle["percent_change_stops"] = (
-    df_vehicle["reas_tot_stops"] - df_vehicle["reas_tot_stops"].shift(-1)
-) / df_vehicle["reas_tot_stops"].shift(-1)
-df_vehicle["percent_change_stops"] = np.where(
-    df_vehicle["Time Period"] == "Before", 0, df_vehicle["percent_change_stops"]
-)
-df_vehicle["percent_change_searches"] = (
-    df_vehicle["reas_tot_searches"] - df_vehicle["reas_tot_searches"].shift(-1)
-) / df_vehicle["reas_tot_searches"].shift(-1)
-df_vehicle["percent_change_searches"] = np.where(
-    df_vehicle["Time Period"] == "Before", 0, df_vehicle["percent_change_searches"]
-)
+df_vehicle = percent_change(df_vehicle, "reas_tot_stops", "percent_change_stops")
+df_vehicle = percent_change(df_vehicle, "reas_tot_searches", "percent_change_searches")
 
 df_reason = pd.concat([df_moving, df_vehicle], axis=0)
 df_reason = pd.wide_to_long(
@@ -459,157 +382,6 @@ df_reason = pd.wide_to_long(
 df_reason["type"] = df_reason["type"].replace(
     {"stops": "Stops", "searches": "Searches"}
 )
-
-# CODE FOR REPEATED WAFFLE CHARTS
-def make_waffles(df, department, period, arrangement):
-    """
-    Create a waffle chart in altair.
-    Parameters:
-    - df (DataFrame):
-    - department (str):
-    - period (str):
-    - arrangement (str):
-
-    Returns:
-    """
-    df = (
-        df.loc[
-            (df["department"] == department)
-            & (df["Time Period"] == period)
-            & (df["reason"] != "Other")
-        ]
-    ).reset_index()
-
-    INV_P, MOV_P, VEH_P = (
-        df.iloc[0]["perc_stops"],
-        df.iloc[1]["perc_stops"],
-        df.iloc[2]["perc_stops"],
-    )
-    INV_STR_P, MOV_STR_P, VEH_STR_P = (
-        format(INV_P) + "%",
-        format(MOV_P) + "%",
-        format(VEH_P) + "%",
-    )
-
-    INV_C, MOV_C, VEH_C = (
-        df.iloc[0]["reas_tot_stops"],
-        df.iloc[1]["reas_tot_stops"],
-        df.iloc[2]["reas_tot_stops"],
-    )
-    INV_STR_C, MOV_STR_C, VEH_STR_C = (
-        format(INV_C, ","),
-        format(MOV_C, ","),
-        format(VEH_C, ","),
-    )
-
-    # create data to represent 10 x 10 grid
-    data = pd.DataFrame([dict(id=i) for i in range(1, 101)])
-
-    # data marker shape (M: move to, H: horizontal line, V: vertical line)
-    square = "M 2 2 H 9 V 9 H 2 L 2 2"
-
-    if period == "Before":
-        color = "#7c7f86"
-        dates = "(Sept 2020 - Aug 2021)"
-
-    elif (period == "After") & (department == "SPPD"):
-        color = "#00708f"
-        dates = "(Sept 2021- Aug 2022)"
-
-    elif (period == "After") & (department == "Other Aligned PDs"):
-        color = "#66bad1"
-        dates = "(Sept 2021- Aug 2022)"
-
-    else:
-        color = "#ff8d19"
-        dates = "(Sept 2021- Aug 2022)"
-
-    Inv_Chart = (
-        alt.Chart(data)
-        .transform_calculate(row="ceil(datum.id/10)")
-        .transform_calculate(col="datum.id - datum.row*10")
-        .mark_point(filled=True, size=20, opacity=0.7)
-        .encode(
-            x=alt.X(
-                "col:O",
-                title=["Investigative: " + INV_STR_P + " (" + INV_STR_C + ")"],
-                axis=alt.Axis(
-                    ticks=False, domain=False, labels=False, titlePadding=30, titleX=100
-                ),
-                scale=alt.Scale(padding=0),
-            ),
-            y=alt.Y("row:O", axis=None),
-            shape=alt.ShapeValue(square),
-            color=alt.condition(
-                alt.datum.id > (100 - INV_P), alt.value(color), alt.value("#e1e2e5")
-            ),
-        )
-    )
-
-    Mov_Chart = (
-        alt.Chart(data)
-        .transform_calculate(row="ceil(datum.id/10)")
-        .transform_calculate(col="datum.id - datum.row*10")
-        .mark_point(filled=True, size=20, opacity=0.7)
-        .encode(
-            x=alt.X(
-                "col:O",
-                title=["Moving Violation: " + MOV_STR_P + " (" + MOV_STR_C + ")"],
-                axis=alt.Axis(
-                    ticks=False, domain=False, labels=False, titlePadding=30, titleX=100
-                ),
-                scale=alt.Scale(padding=0),
-            ),
-            y=alt.Y("row:O", axis=None),
-            shape=alt.ShapeValue(square),
-            color=alt.condition(
-                alt.datum.id > (100 - MOV_P), alt.value(color), alt.value("#e1e2e5")
-            ),
-        )
-    )
-
-    Veh_Chart = (
-        alt.Chart(data)
-        .transform_calculate(row="ceil(datum.id/10)")
-        .transform_calculate(col="datum.id - datum.row*10")
-        .mark_point(filled=True, size=20, opacity=0.7)
-        .encode(
-            x=alt.X(
-                "col:O",
-                title=["Vehicle Violation: " + VEH_STR_P + " (" + VEH_STR_C + ")"],
-                axis=alt.Axis(
-                    ticks=False, domain=False, labels=False, titlePadding=30, titleX=100
-                ),
-                scale=alt.Scale(padding=0),
-            ),
-            y=alt.Y("row:O", axis=None),
-            shape=alt.ShapeValue(square),
-            color=alt.condition(
-                alt.datum.id > (100 - VEH_P), alt.value(color), alt.value("#e1e2e5")
-            ),
-        )
-    )
-
-    if arrangement == "long":
-        return alt.vconcat(Mov_Chart, Veh_Chart, Inv_Chart).properties(
-            title={
-                "text": [period + " Change"],
-                "subtitle": [dates],
-                "align": "center",
-                "anchor": "middle",
-            }
-        )
-
-    elif arrangement == "wide":
-        return alt.hconcat(Mov_Chart, Veh_Chart, Inv_Chart).properties(
-            title={
-                "text": [period + " Change"],
-                "subtitle": [dates],
-                "align": "center",
-                "anchor": "middle",
-            }
-        )
-
 
 """
 Driver race and ethnicity statistics.
@@ -660,22 +432,16 @@ df_race_reason = (
     .reset_index()
 )
 
-df_race_reason["percent_mean_change"] = (
-    df_race_reason["mean_monthly"] - df_race_reason["mean_monthly"].shift(1)
-) / df_race_reason["mean_monthly"].shift(1)
 df_race_reason["percent_mean_change"] = np.where(
     df_race_reason["Time Period"] == "9/18-9/19",
     0,
-    df_race_reason["percent_mean_change"],
+    (df_race_reason["mean_monthly"] - df_race_reason["mean_monthly"].shift(1)) / df_race_reason["mean_monthly"].shift(1)
 )
 
-df_race_reason["percent_median_change"] = (
-    df_race_reason["median_monthly"] - df_race_reason["median_monthly"].shift(1)
-) / df_race_reason["median_monthly"].shift(1)
 df_race_reason["percent_median_change"] = np.where(
     df_race_reason["Time Period"] == "9/18-9/19",
     0,
-    df_race_reason["percent_median_change"],
+    (df_race_reason["median_monthly"] - df_race_reason["median_monthly"].shift(1)) / df_race_reason["median_monthly"].shift(1)
 )
 
 RC_TOTAL_POP = 543257
@@ -692,27 +458,17 @@ df_race_reason["pop_percent"] = df_race_reason["pop_percent"].replace(
     }
 )
 
-df_race_reason["race"] = df_race_reason["race_1"].replace(
-    {
-        "Hispanic or Latino": "Hispanic\nor Latino",
-        "Native American": "Native\nAmerican",
-    }
-)
-
 df_race_reason["pop_percent"] = pd.to_numeric(df_race_reason["pop_percent"])
 
 df_race_reason["pop_count"] = df_race_reason["pop_percent"] * RC_TOTAL_POP
 df_race_reason["count_per_cap"] = (
     df_race_reason["total_annual"] / df_race_reason["pop_count"]
 ) * 1000
-
-df_race_reason["percent_per_cap_change"] = (
-    df_race_reason["count_per_cap"] - df_race_reason["count_per_cap"].shift(1)
-) / df_race_reason["count_per_cap"].shift(1)
+ 
 df_race_reason["percent_per_cap_change"] = np.where(
     df_race_reason["Time Period"] == "9/18-9/19",
     0,
-    df_race_reason["percent_per_cap_change"],
+    (df_race_reason["count_per_cap"] - df_race_reason["count_per_cap"].shift(1)) / df_race_reason["count_per_cap"].shift(1)
 )
 
 conditions = [
@@ -760,7 +516,6 @@ df_calls["date"] = pd.to_datetime(df_calls["time_callenteredqueue"]) - pd.Timede
     days=7
 )
 
-# df_calls['date'] = df_calls['date'].dt.tz_localize(None)
 df_calls = df_calls.loc[
     pd.to_datetime(df_calls["date"]) >= pd.to_datetime("2016-01-01")
 ]
@@ -768,7 +523,7 @@ df_calls = df_calls.loc[pd.to_datetime(df_calls["date"]) < pd.to_datetime("2022-
 
 """
 Filtering data
-In the below steps, we filter data. Included are print statements that we
+We filter data in the steps below. Included are print statements that we
 use as a reference to check the assumptions we are making. Robustness
 checks on the analysis whereby these steps were removed were done for most
 filters.
@@ -790,10 +545,7 @@ total_calls = len(df_calls)
 df_calls["call_disposition"] = df_calls["call_disposition"].fillna(value="None")
 df_calls_no_cancels = df_calls.loc[
     ~(df_calls.call_disposition.str.contains("cance", case=False))
-    # & (df_calls.cancel_reason.isna()) Removing this line because Michael
-    # confirmed that these are not actually canceled, but rather just
-    # closed calls and it is inconsistently used.
-]
+   ]
 print("Number of rows after removing canceled calls", str(len(df_calls_no_cancels)))
 print(
     "Number of rows removed for canceled", str(total_calls - len(df_calls_no_cancels))
@@ -868,7 +620,7 @@ print(
 df_calls = df_calls_cleaned_up.copy()
 
 """
-Label calls with the PD that responds most frequently to that census tract
+Label calls with the PD that responds most frequently to that census tract.
 Rather than using the department that responded to a given call, we are relabeling
 a row by the jx that most frequently responds to calls in that census tract. This
 better estimates the calls arising out of a given jx territory which better reflects
@@ -935,7 +687,7 @@ df_calls_merged = df_calls.merge(
 df_calls_merged["jurisdiction_max_response"].value_counts()
 df_calls = df_calls_merged.copy()
 
-# categorize by policy alignment by expected police response department
+# Categorize by policy alignment by expected police response department
 # Reset policy variable based on jurisdiction_max_response
 df_calls["policy"] = "Other Aligned PDs"
 df_calls["policy"].mask(
@@ -1232,15 +984,7 @@ def monthly_calls_by_category(df, agg_col):
 
     return df_returned
 
-
-# Add chart annotation variables
 df_chart_calls = monthly_calls_by_category(df_calls, "policy")
-df_chart_calls["pol_label"] = "Changes\nImplemented"
-df_chart_calls["pol_date"] = POLICY_START_DATE
-df_chart_calls["covid_label"] = "COVID\nStart"
-df_chart_calls["covid_date"] = pd.to_datetime("2020-03-01")
-df_chart_calls["floyd_label"] = "G. Floyd\nDeath"
-df_chart_calls["floyd_date"] = pd.to_datetime("2020-05-01")
 
 # Look at trends by crime type broadly
 df_temp1 = monthly_calls_by_category(
@@ -1259,13 +1003,6 @@ df_temp3 = monthly_calls_by_category(
 df_temp3["department"] = "Unchanged Policy PDs"
 
 df_calls_crime = pd.concat([df_temp1, df_temp2, df_temp3], axis=0)
-
-df_calls_crime["pol_label"] = "Changes\nImplemented"
-df_calls_crime["pol_date"] = POLICY_START_DATE
-df_calls_crime["covid_label"] = "COVID\nStart"
-df_calls_crime["covid_date"] = pd.to_datetime("2020-03-01")
-df_calls_crime["floyd_label"] = "G. Floyd\nDeath"
-df_calls_crime["floyd_date"] = pd.to_datetime("2020-05-01")
 
 # Create new df for percent change
 df_chart_crime = df_calls_crime.copy()
@@ -1292,26 +1029,24 @@ df_chart_crime = (
 
 # Calculate percent change in violent crime
 df_violent = df_chart_crime.loc[df_chart_crime["crime"] == "Violent"].copy()
-df_violent["percent_change"] = (
-    df_violent["crime_calls"] - df_violent["crime_calls"].shift(-1)
-) / df_violent["crime_calls"].shift(-1)
 df_violent["percent_change"] = np.where(
-    df_violent["Time Period"] == "Before", 0, df_violent["percent_change"]
+    df_violent["Time Period"] == "Before", 
+    0, 
+    (df_violent["crime_calls"] - df_violent["crime_calls"].shift(-1)) / df_violent["crime_calls"].shift(-1)
 )
 
 # Calculate percent change in non-violent crime
 df_nonviolent = df_chart_crime.loc[df_chart_crime["crime"] == "Non-Violent"].copy()
-df_nonviolent["percent_change"] = (
-    df_nonviolent["crime_calls"] - df_nonviolent["crime_calls"].shift(-1)
-) / df_nonviolent["crime_calls"].shift(-1)
+df_nonviolent["percent_change"] = 
 df_nonviolent["percent_change"] = np.where(
-    df_nonviolent["Time Period"] == "Before", 0, df_nonviolent["percent_change"]
+    df_nonviolent["Time Period"] == "Before", 
+    0, 
+    (df_nonviolent["crime_calls"] - df_nonviolent["crime_calls"].shift(-1)) / df_nonviolent["crime_calls"].shift(-1)
 )
 
 df_chart_violence = pd.concat([df_violent, df_nonviolent], axis=0)
 
 # Look at contraband-related crimes
-# Create new df to look at contraband crimes
 df_calls_crime = monthly_calls_by_category(df_calls, "crime")
 
 Contraband_Cats = ["WPN - Weapon", "SHF - Shots Fired", "NAR - Narcotics"]
@@ -1326,13 +1061,6 @@ df_contraband["problem"] = df_contraband["problem"].replace(
     }
 )
 
-df_contraband["pol_label"] = "Changes\nImplemented"
-df_contraband["pol_date"] = POLICY_START_DATE
-df_contraband["covid_label"] = "COVID\nStart"
-df_contraband["covid_date"] = pd.to_datetime("2020-03-01")
-df_contraband["floyd_label"] = "G. Floyd\nDeath"
-df_contraband["floyd_date"] = pd.to_datetime("2020-05-01")
-
 """
 JIL received an additional data source of gun seizures by SPPD. That dataset
 covered a limited time period and is relatively small thus cleaning, manipulation,
@@ -1343,7 +1071,7 @@ df_firearms = pd.read_excel("code_f/data/firearm_recovery.xlsx")
 # Subtract 7 seven days from date to match other analyses
 df_firearms["Date"] = df_firearms["Date"] - pd.Timedelta(days=7)
 
-# fix data entry
+# Fix data entry
 df_firearms["Recovered on Traffic Stop?"] = df_firearms[
     "Recovered on Traffic Stop?"
 ].replace({"yes": "Yes"})
@@ -1423,7 +1151,7 @@ df_chart_traffic_seizures = df_chart_traffic_seizures.loc[
     ~df_chart_traffic_seizures["Date"].isin(["2020-12-01", "2022-10-01"])
 ]
 
-# Combine charts
+# Combine chart dfs
 df_chart_guns = pd.concat([df_chart_all_seizures, df_chart_traffic_seizures], axis=0)
 
 # Add new variable for before and after policy implementation
@@ -1435,14 +1163,6 @@ conditions = [
 labels = ["Before", "After"]
 
 df_chart_guns["Time Period"] = np.select(conditions, labels)
-
-# Add variables for chart annotations
-df_chart_guns["pol_label"] = "Changes\nImplemented"
-df_chart_guns["pol_date"] = POLICY_START_DATE
-df_chart_guns["covid_label"] = "COVID\nStart"
-df_chart_guns["covid_date"] = pd.to_datetime("2020-03-01")
-df_chart_guns["floyd_label"] = "G. Floyd\nDeath"
-df_chart_guns["floyd_date"] = pd.to_datetime("2020-05-01")
 
 # Firearm seizure statistics - all seizures
 MEAN_SEIZ_BEFORE = df_chart_guns.loc[
@@ -1477,31 +1197,6 @@ print(
 print(
     f"The SPPD seized {MEAN_TRAF_BEFORE:.1f} firearms a day during traffic stops on average per month prior to policy implementation, {MEAN_TRAF_AFTER:.1f} after policy implementation, and {MEAN_TRAF_OVERALL:.1f} overall."
 )
-
-# Chart colors
-gun_domain = ["All Firearm Seizures", "Traffic Stop Firearm Seizures"]
-gun_domain2 = ["Before", "After"]
-gun_range = ["gray", "#00708f"]
-
-# Add new variable for before and after policy implementation
-conditions = [
-    (df_chart_guns["Date"] < "2021-9-01"),
-    (df_chart_guns["Date"] >= "2021-9-01"),
-]
-
-conditions2 = [
-    (df_chart_guns["cat"] == "All Firearm Seizures"),
-    (df_chart_guns["cat"] == "Traffic Stop Firearm Seizures"),
-]
-
-labels = ["Before", "After"]
-labels2 = [
-    "All Firearm Seizures\nBefore: Jan 2020-Aug 2021, After: Sept 2021-Sept 2022",
-    "Traffic Stop Firearm Seizures\nBefore: Jan 2021-Aug 2021, After: Sept 2021-Sept 2022",
-]
-
-df_chart_guns["Time Period"] = np.select(conditions, labels)
-df_chart_guns["cat2"] = np.select(conditions2, labels2)
 
 # Traffic stop gun seizure rate
 
@@ -1558,18 +1253,6 @@ conditions = [
 labels = ["Before", "After"]
 
 df_chart_seizure_rate["Time Period"] = np.select(conditions, labels)
-
-# Add chart annotation variables
-df_chart_seizure_rate["pol_label"] = "Changes\nImplemented"
-df_chart_seizure_rate["pol_date"] = POLICY_START_DATE
-df_chart_seizure_rate["type"] = df_chart_seizure_rate["type"].replace(
-    {
-        "seizures_per_stop": "Seizures per Stop",
-        "seizures_per_search": "Seizures per Search",
-    }
-)
-seiz_domain = ["Seizures per Stop", "Seizures per Search"]
-seiz_range = ["#00546b", "#00708f"]
 
 # Gun seizure statistics - stops
 MEAN_SEIZ_STOPS_BEFORE = (
